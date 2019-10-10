@@ -3,20 +3,72 @@
     <img alt="Vue logo" src="../assets/logo.png">
     <div class="title">What do I need to do today?</div>
     <input v-model="myTodo" /><button @click="addToDo">Add</button>
+    <div v-if="errors !== ''" id="errors">{{ errors }}</div>
+
+    <div v-if="this.$store.getters.getItems && this.$store.getters.getItems.length > 0">
+      <div class="title">Today, you've go to do...</div>
+      <div v-for="item in this.$store.getters.getItems" :key="item.id">
+        <div class="row">
+          <div class="col-md-6">
+            {{ item.title }} 
+          </div>
+          <div class="col-md-6">
+            <button 
+              type="button"
+              class="btn btn-danger btn-sm" 
+              @click="deleteItem(item.id)"
+            >
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+        <hr/>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import { db } from '@/main'
 export default {
   name: 'home',
   data: function () {
     return {
-      myTodo: ''
+      myTodo: '',
+      errors: ''
     }
+  },
+  beforeCreate: function () {
+    this.$store.dispatch('setItems')
   },
   methods: {
     addToDo: function () {
-      console.log('myTodo: ' + this.myTodo)
+      this.errors = ''
+      if (this.myTodo !== '') {
+        db.collection('items').add({
+          title: this.myTodo,
+          created_at: Date.now()
+        }).then((response) => {
+          if (response) {
+            this.myTodo = ''
+          }
+        }).catch((error) => {
+          this.errors = error
+        })
+      } else {
+        this.errors = 'Please enter some text'
+      }
+    },
+    deleteItem: function (id) {
+      if (id) {
+        db.collection("items").doc(id).delete().then(function() {
+          console.log('Document successfully deleted')
+        }).catch(function(error) {
+          this.error = error
+        })
+      } else {
+        this.error = 'Invalid ID'
+      }
     }
   }
 }
@@ -58,6 +110,8 @@ button {
   color:#fff;
   font-weight:700;
   cursor:pointer;
+  max-width: 100%;
+  padding:10px;
 }
 
 .title {
